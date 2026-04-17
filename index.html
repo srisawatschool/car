@@ -1,10 +1,1466 @@
 <!DOCTYPE html>
-<html>
-   <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-      <base target="_top">
-   </head>
-   <body>
-      <iframe style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;border: 0;" src="https://script.google.com/macros/s/AKfycbz-GAQAd66E8kaht3IA7zYwFbIVTuzJe7FLtCa46w32VKYMwKj70-V-zjBJVp8JXFrEbA/exec"></iframe>
-   </body>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบจองรถ SW | School Vehicle Booking System</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
+        body { font-family: 'Kanit', sans-serif; background-color: #f3f4f6; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .view-section { display: none !important; animation: fadeIn 0.4s ease-in-out; }
+        .view-section.active { display: block !important; }
+        #view-login.active { display: flex !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        #global-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; display: none; flex-direction: column; gap: 10px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+        
+        /* ขยายขนาดฟอนต์ปฏิทิน */
+        @media (max-width: 768px) {
+            .fc .fc-toolbar.fc-header-toolbar { flex-direction: column; gap: 0.5rem; }
+            .fc .fc-toolbar-title { font-size: 1.4rem !important; }
+            .fc .fc-button { padding: 0.4rem 0.8rem !important; font-size: 0.9rem !important; }
+            .fc-daygrid-event { font-size: 0.85rem !important; padding: 3px !important; }
+            .fc-daygrid-day-number { font-size: 1.1rem !important; padding: 4px !important; }
+        }
+        @media (min-width: 769px) {
+            .fc .fc-toolbar-title { font-size: 1.75rem !important; }
+            .fc .fc-button { font-size: 1.1rem !important; padding: 0.5rem 1rem !important; }
+            .fc-daygrid-event { font-size: 1rem !important; padding: 4px !important; }
+            .fc-daygrid-day-number { font-size: 1.2rem !important; }
+        }
+        
+        @media print {
+            aside, header, footer, .no-print, #sidebar-backdrop { display: none !important; }
+            main { height: auto !important; overflow: visible !important; }
+            .view-section { display: block !important; }
+            canvas { max-width: 100%; }
+        }
+        select optgroup { font-weight: bold; color: #1e40af; background-color: #eff6ff; }
+        select option { font-weight: normal; color: #374151; background-color: #ffffff; padding: 4px; }
+    </style>
+</head>
+<body class="text-gray-800 text-base md:text-lg">
+
+    <div id="global-loader">
+        <div class="spinner"></div>
+        <div id="loader-text" class="text-blue-600 font-bold text-lg">กำลังโหลด...</div>
+    </div>
+
+    <!-- Login View -->
+    <div id="view-login" class="view-section active min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 p-4">
+        <div class="glass p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all hover:scale-105 duration-300 relative">
+            <div class="absolute top-2 right-2 text-sm text-green-500 bg-green-100 px-2 py-1 rounded font-bold">Firebase Connected ⚡</div>
+            <div class="text-center mb-8 mt-4">
+                <i class="fa-solid fa-bolt text-6xl text-blue-600 mb-4"></i>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800">ระบบจองรถ SW</h2>
+                <p class="text-gray-500 mt-2 text-lg">กรุณาเข้าสู่ระบบเพื่อดำเนินการ (GitHub Mode)</p>
+            </div>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-base font-bold mb-2">ชื่อผู้ใช้งาน(email ตัวเล็กทั้งหมด)</label>
+                    <input type="text" id="username" required class="w-full px-4 py-3 text-lg rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-base font-bold mb-2">รหัสผ่าน(6หลัก)</label>
+                    <input type="password" id="password" required class="w-full px-4 py-3 text-lg rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 text-lg rounded-lg hover:bg-blue-700 transition shadow-lg">
+                    เข้าสู่ระบบ <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div id="main-layout" class="hidden h-screen overflow-hidden flex-col md:flex-row relative">
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-72 bg-slate-800 text-white flex flex-col shadow-2xl z-50 fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="p-6 flex items-center gap-3 border-b border-slate-700 justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-bolt text-3xl text-blue-400"></i>
+                    <h1 class="text-2xl font-bold tracking-wide">Vehicle<span class="text-blue-400">SW</span></h1>
+                </div>
+                <button class="md:hidden text-gray-400 hover:text-white text-2xl" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="p-4 text-base text-slate-300 bg-slate-900 shadow-inner">
+                ยินดีต้อนรับ, <br>
+                <span id="display-user-name" class="font-bold text-white text-lg block mt-1"></span>
+                <span id="display-user-role" class="inline-block mt-1 px-3 py-1 bg-blue-600 rounded text-sm text-white"></span>
+            </div>
+
+            <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                <div id="menu-user" class="space-y-2">
+                    <a href="#" onclick="switchView('view-dashboard')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-chart-pie w-6"></i> Dashboard</a>
+                    <a href="#" onclick="switchView('view-booking')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-pen-to-square w-6"></i> จองรถใหม่</a>
+                    <a href="#" onclick="switchView('view-my-bookings')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-clock-rotate-left w-6"></i> สถานะการจองของฉัน</a>
+                </div>
+
+                <div id="menu-driver" class="hidden space-y-2">
+                    <div class="text-sm text-slate-500 uppercase font-bold mb-2 px-4 mt-2">ส่วนของคนขับรถ</div>
+                    <a href="#" onclick="switchView('view-driver-schedule')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition bg-slate-700/50 border border-slate-600 text-base md:text-lg"><i class="fa-solid fa-route w-6 text-orange-400"></i> ภาระงานของฉัน <span id="badge-driver-job" class="ml-2 bg-orange-500 text-white text-sm px-2 py-0.5 rounded-full hidden">0</span></a>
+                </div>
+
+                <div class="pt-2 border-t border-slate-700 mt-2"></div>
+                <a href="#" onclick="switchView('view-calendar')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-calendar-days w-6"></i> ปฏิทินการใช้รถ</a>
+                
+                <div id="menu-viewer" class="hidden space-y-2 mt-2 pt-2 border-t border-slate-700">
+                    <div class="text-sm text-slate-500 uppercase font-bold mb-2 px-4">ส่วนของผู้ชม (Viewer)</div>
+                    <a href="#" onclick="switchView('view-workload')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-users-gear w-6"></i> ภาระงานคนขับ/รถ</a>
+                </div>
+                
+                <!-- เมนูพิเศษสำหรับ Superuser (เจ้าหน้าที่พิมพ์ใบงาน) -->
+                <div id="superuser-menus" class="hidden space-y-2 mt-2 pt-2 border-t border-slate-700">
+                    <div class="text-sm text-slate-500 uppercase font-bold mb-2 px-4">ส่วนของเจ้าหน้าที่</div>
+                    <a href="#" onclick="switchView('view-approval')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-print w-6"></i> พิมพ์ใบขออนุญาต</a>
+                    <a href="#" onclick="switchView('view-workload')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-users-gear w-6"></i> ภาระงานคนขับ/รถ</a>
+                </div>
+
+                <div id="admin-menus" class="hidden space-y-2 pt-4 mt-4 border-t border-slate-700">
+                    <div class="text-sm text-slate-500 uppercase font-bold mb-2 px-4">ส่วนของผู้ดูแลระบบ</div>
+                    <a href="#" onclick="switchView('view-approval')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-clipboard-check w-6"></i> อนุมัติคำขอ <span id="badge-pending" class="ml-2 bg-red-500 text-white text-sm px-2 py-0.5 rounded-full hidden">0</span></a>
+                    <a href="#" onclick="switchView('view-workload')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-users-gear w-6"></i> ภาระงานคนขับ/รถ</a>
+                    <a href="#" onclick="switchView('view-stats')" class="nav-item block px-4 py-3 rounded-lg hover:bg-slate-700 transition text-base md:text-lg"><i class="fa-solid fa-chart-line w-6"></i> สถิติและรายงาน</a>
+                    <div id="sync-btn-container" class="hidden pt-2 space-y-2">
+                        <button onclick="syncDataToFirebase()" class="w-full text-left text-sm bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded transition"><i class="fa-solid fa-cloud-arrow-up"></i> Sync ข้อมูลจาก Sheet</button>
+                        <button onclick="cleanupOldBookings()" class="w-full text-left text-sm bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded transition"><i class="fa-solid fa-trash-can"></i> ล้างประวัติเก่าเกิน 1 ปี</button>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-slate-700">
+                <button onclick="logout()" class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-3 text-lg rounded transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden w-full relative">
+            <header class="bg-white shadow-sm p-4 flex items-center gap-4 z-10 sticky top-0">
+                <button class="md:hidden text-gray-600 hover:text-gray-900 text-3xl transition" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                <div id="current-page-title" class="text-2xl font-bold text-gray-700 truncate">Dashboard</div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 bg-gray-100 h-full w-full">
+                <!-- Dashboard View -->
+                <div id="view-dashboard" class="view-section">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 md:mb-8">
+                        <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500 flex items-center justify-between">
+                            <div><p class="text-gray-500 text-sm md:text-base">รถทั้งหมด</p><h3 class="text-3xl md:text-4xl font-bold text-gray-800" id="dash-total">-</h3></div>
+                            <div class="bg-blue-100 p-4 rounded-full text-blue-500"><i class="fa-solid fa-car text-xl md:text-2xl"></i></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-orange-500 flex items-center justify-between">
+                            <div><p class="text-gray-500 text-sm md:text-base">ใช้งานวันนี้</p><h3 class="text-3xl md:text-4xl font-bold text-gray-800" id="dash-inuse">-</h3></div>
+                            <div class="bg-orange-100 p-4 rounded-full text-orange-500"><i class="fa-solid fa-route text-xl md:text-2xl"></i></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500 flex items-center justify-between">
+                            <div><p class="text-gray-500 text-sm md:text-base">รถว่าง</p><h3 class="text-3xl md:text-4xl font-bold text-gray-800" id="dash-free">-</h3></div>
+                            <div class="bg-green-100 p-4 rounded-full text-green-500"><i class="fa-solid fa-check text-xl md:text-2xl"></i></div>
+                        </div>
+                         <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-purple-500 flex items-center justify-between">
+                            <div><p class="text-gray-500 text-sm md:text-base">งานพรุ่งนี้</p><h3 class="text-3xl md:text-4xl font-bold text-gray-800" id="dash-tomorrow">-</h3></div>
+                            <div class="bg-purple-100 p-4 rounded-full text-purple-500"><i class="fa-solid fa-calendar text-xl md:text-2xl"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                        <h3 class="text-lg md:text-xl font-bold mb-4 border-b pb-2"><i class="fa-solid fa-list text-blue-500 mr-2"></i> สถานะการใช้รถวันนี้ (ที่อนุมัติแล้ว)</h3>
+                        <div class="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                            <table class="w-full text-left border-collapse whitespace-nowrap md:whitespace-normal text-base md:text-lg">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600">
+                                        <th class="p-4 border-b">ผู้ใช้งาน/กิจกรรม</th>
+                                        <th class="p-4 border-b">เวลา</th>
+                                        <th class="p-4 border-b">สถานที่</th>
+                                        <th class="p-4 border-b text-center">รถ/คนขับ ที่จัดสรร</th>
+                                        <th class="p-4 border-b text-center">สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-today-table"><tr><td colspan="5" class="text-center p-4 text-gray-500">กำลังโหลด...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Bookings View -->
+                <div id="view-my-bookings" class="view-section">
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                        <div class="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                            <table class="w-full text-left border-collapse text-base md:text-lg whitespace-nowrap md:whitespace-normal">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-700">
+                                        <th class="p-4">รหัสจอง</th>
+                                        <th class="p-4">กิจกรรม / สถานที่</th>
+                                        <th class="p-4">วัน-เวลา ที่ใช้งาน</th>
+                                        <th class="p-4 text-center">ความต้องการ</th>
+                                        <th class="p-4 text-center">รถที่ได้รับจัดสรร</th>
+                                        <th class="p-4 text-center">สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="my-bookings-table"><tr><td colspan="6" class="text-center p-4 text-gray-500">กำลังโหลด...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Schedule View -->
+                <div id="view-driver-schedule" class="view-section max-w-4xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                        <div class="bg-orange-50 border border-orange-200 p-4 rounded-lg mb-6 flex items-start gap-3">
+                            <i class="fa-solid fa-circle-info text-orange-500 mt-1 text-xl"></i>
+                            <div class="text-base text-orange-800">หน้านี้แสดงเฉพาะ <b>รายการที่ได้รับการจัดสรรให้ท่านเป็นผู้ขับ</b> เรียงตามลำดับเวลาการใช้งาน (ซ่อนงานที่ผ่านไปแล้ว)</div>
+                        </div>
+
+                        <div class="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                            <table class="w-full text-left border-collapse text-base md:text-lg whitespace-nowrap md:whitespace-normal">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-700">
+                                        <th class="p-4">วัน-เวลา</th>
+                                        <th class="p-4">กิจกรรม / สถานที่</th>
+                                        <th class="p-4 text-center">รถที่ต้องขับ</th>
+                                        <th class="p-4 text-center">สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="driver-schedule-table"><tr><td colspan="4" class="text-center p-4 text-gray-500">กำลังโหลด...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Booking Form View -->
+                <div id="view-booking" class="view-section max-w-4xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-lg p-5 md:p-8 border-t-4 border-blue-500">
+                        <form id="createBookingForm" onsubmit="submitBooking(event)">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                <div><label class="block text-base font-medium text-gray-700 mb-1">ชื่อผู้จอง</label><input type="text" id="b-requester" readonly class="w-full p-3 border rounded-lg bg-gray-100 text-gray-600 outline-none text-base"></div>
+                                <div><label class="block text-base font-medium text-gray-700 mb-1">กลุ่มสาระ</label><input type="text" id="b-dept" readonly class="w-full p-3 border rounded-lg bg-gray-100 text-gray-600 outline-none text-base"></div>
+                                <div class="md:col-span-2"><label class="block text-base font-medium text-gray-700 mb-1">กิจกรรม/วัตถุประสงค์</label><input type="text" id="b-activity" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                                <div><label class="block text-base font-medium text-gray-700 mb-1">วัน-เวลา เริ่มต้น</label><input type="datetime-local" id="b-start" required onchange="checkRealtimeAvailability('b-start', 'b-end', 'availability-status', 'availability-content')" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                                <div><label class="block text-base font-medium text-gray-700 mb-1">วัน-เวลา สิ้นสุด</label><input type="datetime-local" id="b-end" required onchange="checkRealtimeAvailability('b-start', 'b-end', 'availability-status', 'availability-content')" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                                <div class="md:col-span-2"><label class="block text-base font-medium text-gray-700 mb-1">สถานที่ไปปฏิบัติงาน (ระบุให้ชัดเจน)</label><input type="text" id="b-location" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                                <div><label class="block text-base font-medium text-gray-700 mb-1">จำนวนผู้โดยสารรวม (คน)</label><input type="number" id="b-passenger" min="1" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+
+                                <div id="availability-status" class="hidden md:col-span-2 bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg shadow-sm">
+                                    <h4 class="font-bold mb-2 text-base md:text-lg"><i class="fa-solid fa-circle-info"></i> สถานะรถว่างในช่วงเวลาที่ท่านเลือก</h4>
+                                    <div id="availability-content" class="text-base grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                                </div>
+                                
+                                <div class="md:col-span-2 bg-gray-50 p-4 md:p-6 rounded-lg border">
+                                    <label class="block text-base font-bold text-gray-700 mb-3 border-b pb-2">ระบุประเภทและจำนวนรถที่ต้องการ</label>
+                                    <div id="vehicle-request-container" class="space-y-3">
+                                        <div class="flex items-center gap-2 md:gap-3 vehicle-req-row flex-wrap sm:flex-nowrap">
+                                            <select class="req-type flex-1 p-3 border rounded-lg w-full sm:w-auto outline-none focus:ring-2 focus:ring-blue-500 text-base" required></select>
+                                            <input type="number" class="req-count w-full sm:w-24 p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-base" min="1" value="1" required placeholder="จำนวน(คัน)">
+                                            <button type="button" class="px-4 py-3 text-red-500 hover:bg-red-100 rounded-lg hidden rm-btn w-full sm:w-auto text-center" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash text-lg"></i></button>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="addVehicleRequestRow('vehicle-request-container')" class="mt-4 text-base text-blue-600 font-bold hover:underline inline-flex items-center gap-1"><i class="fa-solid fa-plus"></i> เพิ่มประเภทรถอื่นๆ</button>
+                                </div>
+
+                                <div class="md:col-span-2"><label class="block text-base font-medium text-gray-700 mb-1">หมายเหตุเพิ่มเติม</label><textarea id="b-note" rows="2" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></textarea></div>
+                            </div>
+                            <div class="mt-6 md:mt-8 flex justify-end">
+                                <button type="submit" class="w-full md:w-auto bg-blue-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-blue-700 shadow-lg transform hover:-translate-y-1 transition flex justify-center items-center gap-2">
+                                    <i class="fa-solid fa-paper-plane"></i> ส่งคำขอจองรถ
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Approval View -->
+                <div id="view-approval" class="view-section">
+                     <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                            <h3 class="text-lg md:text-xl font-bold"><i class="fa-solid fa-list-check text-blue-500 mr-2"></i> รายการคำขอจองทั้งหมด</h3>
+                            <select id="filter-status" class="border rounded-lg p-2.5 text-base w-full md:w-auto outline-none focus:ring-2 focus:ring-blue-500" onchange="renderApprovals()">
+                                <option value="รออนุมัติ">รออนุมัติ</option>
+                                <option value="อนุมัติแล้ว">อนุมัติแล้ว</option>
+                                <option value="ปฏิเสธ">ปฏิเสธ</option>
+                                <option value="all">ทั้งหมด</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                            <table class="w-full text-left border-collapse text-base md:text-lg whitespace-nowrap md:whitespace-normal">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-700">
+                                        <th class="p-4">ID / ผู้จอง</th>
+                                        <th class="p-4">กิจกรรม / สถานที่</th>
+                                        <th class="p-4">วันเวลา</th>
+                                        <th class="p-4 text-center">ความต้องการ</th>
+                                        <th class="p-4 text-center">สถานะ</th>
+                                        <th class="p-4 text-center">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="approval-table"><tr><td colspan="6" class="text-center p-4 text-gray-500">กำลังโหลด...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workload Dashboard -->
+                <div id="view-workload" class="view-section">
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4 gap-4">
+                            <h3 class="text-xl md:text-2xl font-bold text-gray-800"><i class="fa-solid fa-users-gear text-blue-500 mr-2"></i> ภาระงานและสถานะปัจจุบัน</h3>
+                            <div class="flex gap-2 w-full md:w-auto">
+                                <button onclick="switchWorkloadTab('driver')" id="tab-driver" class="flex-1 md:flex-none tab-btn active px-4 py-2 border rounded-lg font-bold transition text-base">ข้อมูลคนขับ</button>
+                                <button onclick="switchWorkloadTab('vehicle')" id="tab-vehicle" class="flex-1 md:flex-none tab-btn px-4 py-2 border rounded-lg font-bold transition text-base">ข้อมูลรถ</button>
+                            </div>
+                        </div>
+                        <div id="workload-driver" class="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                            <table class="w-full text-left border-collapse text-base md:text-lg whitespace-nowrap md:whitespace-normal">
+                                <thead><tr class="bg-gray-100 text-gray-700"><th class="p-4 w-1/3 md:w-1/4">ชื่อคนขับ</th><th class="p-4">งานที่ได้รับมอบหมาย</th></tr></thead>
+                                <tbody id="wl-driver-body"></tbody>
+                            </table>
+                        </div>
+                        <div id="workload-vehicle" class="hidden overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                            <table class="w-full text-left border-collapse text-base md:text-lg whitespace-nowrap md:whitespace-normal">
+                                <thead><tr class="bg-gray-100 text-gray-700"><th class="p-4 w-1/3 md:w-1/4">รถ / ทะเบียน</th><th class="p-4">งานที่ได้รับมอบหมาย</th></tr></thead>
+                                <tbody id="wl-vehicle-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar View -->
+                <div id="view-calendar" class="view-section w-full">
+                    <div class="bg-white rounded-xl shadow-sm p-2 md:p-6 w-full overflow-x-auto">
+                        <div class="min-w-[300px]"><div id="calendar" class="w-full min-h-[400px] md:min-h-[500px]"></div></div>
+                    </div>
+                </div>
+
+                 <!-- Stats View -->
+                 <div id="view-stats" class="view-section">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 no-print gap-3">
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">รายงานและสถิติการใช้งาน</h2>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 overflow-x-auto">
+                            <h3 class="font-bold text-gray-700 mb-4 text-center text-lg md:text-xl border-b pb-2">สถิติการใช้รถแต่ละคัน</h3>
+                            <table class="w-full text-left border-collapse text-base md:text-lg">
+                                <thead><tr class="bg-gray-50 text-gray-700"><th class="p-4 border-b">ชื่อรถ / ทะเบียน</th><th class="p-4 border-b text-center">จำนวนครั้งที่ใช้งาน</th></tr></thead>
+                                <tbody id="stat-vehicle-body"></tbody>
+                            </table>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 overflow-x-auto">
+                            <h3 class="font-bold text-gray-700 mb-4 text-center text-lg md:text-xl border-b pb-2">แผนก/กลุ่มสาระที่ใช้งานบ่อยสุด</h3>
+                            <table class="w-full text-left border-collapse text-base md:text-lg">
+                                <thead><tr class="bg-gray-50 text-gray-700"><th class="p-4 border-b">แผนก/กลุ่มสาระ</th><th class="p-4 border-b text-center">จำนวนครั้งที่จอง</th></tr></thead>
+                                <tbody id="stat-dept-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="bg-white text-center p-4 text-sm md:text-base text-gray-500 border-t absolute bottom-0 w-full z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+                พัฒนาโดย <span class="font-bold text-blue-600">ศูนย์พัฒนาสื่อ นวัตกรรมและเทคโนโลยีทางการศึกษา โรงเรียนศรีสวัสดิ์วิทยาคารจังหวัดน่าน</span>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Modal จัดสรรรถ (Admin) -->
+    <div id="allocate-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex justify-center items-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-5 md:p-8 m-2 md:m-4 transform transition-all scale-95 opacity-0 max-h-[95vh] overflow-y-auto" id="allocate-modal-content">
+            <h3 class="text-xl md:text-2xl font-bold mb-4 border-b pb-2 text-blue-600">จัดสรรทรัพยากร (อนุมัติคำขอ)</h3>
+            <input type="hidden" id="alloc-id">
+            <input type="hidden" id="alloc-req-json">
+            
+            <div class="mb-4 text-base md:text-lg bg-blue-50 p-4 rounded-lg text-blue-800">
+                <p><strong>ผู้จอง:</strong> <span id="alloc-user"></span></p>
+                <p><strong>กิจกรรม:</strong> <span id="alloc-activity">-</span></p>
+                <p><strong>สถานที่:</strong> <span id="alloc-location">-</span></p>
+                <p><strong>เวลา:</strong> <span id="alloc-time"></span></p>
+                <p class="text-orange-600 mt-2"><strong>หมายเหตุผู้จอง:</strong> <span id="alloc-user-note">-</span></p>
+                <div class="mt-3 p-3 bg-white rounded border border-blue-200">
+                    <p class="font-bold mb-1 text-red-500">สิ่งที่ร้องขอมา:</p>
+                    <ul id="alloc-req-list" class="list-disc list-inside"></ul>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-base md:text-lg font-bold text-gray-700 mb-2">จัดสรรรถและคนขับ</label>
+                <div id="alloc-dynamic-rows" class="space-y-3"></div>
+                <p class="text-sm text-gray-500 mt-2">* หากต้องการอนุมัติน้อยกว่าที่ขอ สามารถกดปุ่ม <i class="fa-solid fa-trash text-red-500"></i> ลบรายการได้</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-base md:text-lg font-bold text-gray-700 mb-2">หมายเหตุ/เหตุผลของผู้อนุมัติ (ถ้ามี)</label>
+                <input type="text" id="alloc-note" class="w-full p-3 text-base border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+                <button onclick="closeAllocateModal()" class="w-full sm:w-auto px-6 py-3 text-lg bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition order-3 sm:order-1 font-medium">ยกเลิก</button>
+                <button onclick="submitApproval('ปฏิเสธ')" class="w-full sm:w-auto px-6 py-3 text-lg bg-red-500 text-white rounded-lg hover:bg-red-600 transition order-2 sm:order-2 font-medium">ปฏิเสธคำขอ</button>
+                <button onclick="submitApproval('อนุมัติแล้ว')" class="w-full sm:w-auto px-6 py-3 text-lg bg-green-500 text-white rounded-lg hover:bg-green-600 transition shadow-md order-1 sm:order-3 font-bold">บันทึกและอนุมัติ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal เปลี่ยนคนขับ (Admin/Superadmin) -->
+    <div id="edit-driver-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex justify-center items-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-5 md:p-8 m-2 md:m-4 transform transition-all scale-95 opacity-0 max-h-[95vh] overflow-y-auto" id="edit-driver-modal-content">
+            <h3 class="text-xl md:text-2xl font-bold mb-4 border-b pb-2 text-orange-500"><i class="fa-solid fa-user-pen"></i> เปลี่ยนคนขับรถที่จัดสรรไว้</h3>
+            <input type="hidden" id="edit-alloc-id">
+            <input type="hidden" id="edit-alloc-booking-id">
+            
+            <div class="mb-5 text-base md:text-lg bg-orange-50 p-4 rounded-lg text-orange-800 border border-orange-200">
+                <p><strong>ผู้จอง:</strong> <span id="edit-alloc-user"></span></p>
+                <p><strong>เวลางาน:</strong> <span id="edit-alloc-time"></span></p>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-base md:text-lg font-bold text-gray-700 mb-3">แก้ไขคนขับสำหรับรถแต่ละคัน</label>
+                <div id="edit-alloc-dynamic-rows" class="space-y-4"></div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-end gap-3 pt-5 border-t">
+                <button onclick="closeEditDriverModal()" class="w-full sm:w-auto px-6 py-3 text-lg bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition order-2 sm:order-1 font-medium">ยกเลิก</button>
+                <button onclick="submitEditDriver()" class="w-full sm:w-auto px-6 py-3 text-lg bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition shadow-md order-1 sm:order-2 font-bold">บันทึกการเปลี่ยนแปลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal แก้ไขการจอง (สำหรับ User) -->
+    <div id="edit-user-booking-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex justify-center items-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-5 md:p-8 m-2 md:m-4 transform transition-all scale-95 opacity-0 max-h-[95vh] overflow-y-auto" id="edit-user-booking-modal-content">
+            <h3 class="text-xl md:text-2xl font-bold mb-4 border-b pb-2 text-blue-600"><i class="fa-solid fa-pen"></i> แก้ไขคำขอจองรถ</h3>
+            <form id="editBookingForm" onsubmit="submitEditBooking(event)">
+                <input type="hidden" id="eb-fb-id">
+                <input type="hidden" id="eb-booking-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div class="md:col-span-2"><label class="block text-base font-medium text-gray-700 mb-1">กิจกรรม/วัตถุประสงค์</label><input type="text" id="eb-activity" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                    <div><label class="block text-base font-medium text-gray-700 mb-1">วัน-เวลา เริ่มต้น</label><input type="datetime-local" id="eb-start" required onchange="checkRealtimeAvailability('eb-start', 'eb-end', 'eb-availability-status', 'eb-availability-content')" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                    <div><label class="block text-base font-medium text-gray-700 mb-1">วัน-เวลา สิ้นสุด</label><input type="datetime-local" id="eb-end" required onchange="checkRealtimeAvailability('eb-start', 'eb-end', 'eb-availability-status', 'eb-availability-content')" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                    <div class="md:col-span-2"><label class="block text-base font-medium text-gray-700 mb-1">สถานที่ไปปฏิบัติงาน (ระบุให้ชัดเจน)</label><input type="text" id="eb-location" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+                    <div><label class="block text-base font-medium text-gray-700 mb-1">จำนวนผู้โดยสารรวม (คน)</label><input type="number" id="eb-passenger" min="1" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></div>
+
+                    <div id="eb-availability-status" class="hidden md:col-span-2 bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg shadow-sm">
+                        <h4 class="font-bold mb-2 text-base md:text-lg"><i class="fa-solid fa-circle-info"></i> สถานะรถว่างในช่วงเวลาที่ท่านเลือก</h4>
+                        <div id="eb-availability-content" class="text-base grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                    </div>
+                    
+                    <div class="md:col-span-2 bg-gray-50 p-4 md:p-6 rounded-lg border">
+                        <label class="block text-base font-bold text-gray-700 mb-3 border-b pb-2">ระบุประเภทและจำนวนรถที่ต้องการ</label>
+                        <div id="edit-vehicle-request-container" class="space-y-3">
+                            <!-- JS fills dynamic rows for edit -->
+                        </div>
+                        <button type="button" onclick="addVehicleRequestRow('edit-vehicle-request-container')" class="mt-4 text-base text-blue-600 font-bold hover:underline inline-flex items-center gap-1"><i class="fa-solid fa-plus"></i> เพิ่มประเภทรถอื่นๆ</button>
+                    </div>
+
+                    <div class="md:col-span-2"><label class="block text-base font-medium text-gray-700 mb-1">หมายเหตุเพิ่มเติม</label><textarea id="eb-note" rows="2" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-base"></textarea></div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-end gap-3 pt-6 mt-6 border-t">
+                    <button type="button" onclick="closeEditBookingModal()" class="w-full sm:w-auto px-6 py-3 text-lg bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium">ยกเลิก</button>
+                    <button type="submit" class="w-full sm:w-auto px-8 py-3 text-lg bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md font-bold"><i class="fa-solid fa-save"></i> บันทึกการแก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= Firebase & JavaScript Logic ================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAclRBQp2sYXfZujUUAPRFhPDMypmthXSU",
+            authDomain: "carsw-2515a.firebaseapp.com",
+            projectId: "carsw-2515a",
+            storageBucket: "carsw-2515a.firebasestorage.app",
+            messagingSenderId: "69071906415",
+            appId: "1:69071906415:web:c0de19d903903563464f9a",
+            measurementId: "G-MSRY1376E7"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+
+        // ⚠️ วาง URL ของ Google Apps Script Web App ของคุณที่นี่
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxlqdLAy5s1M3JssXQG1sUMgyKyy9a36CE7TkR0RGnZc6YjtLjDOABGDRYRJnwQqxE3/exec';
+
+        window.currentUser = null;
+        window.allBookings = [];
+        window.allUsers = [];
+        window.allVehicles = [];
+        window.allDrivers = [];
+        window.globalVehicleTypes = [];
+        window.globalVehicleMap = {};
+        window.globalDriverMap = {};
+        let calendarInstance = null;
+
+        window.showLoader = function(text = 'กำลังโหลด...') { 
+            document.getElementById('loader-text').innerText = text;
+            document.getElementById('global-loader').style.display = 'flex'; 
+        }
+        window.hideLoader = function() { 
+            document.getElementById('global-loader').style.display = 'none'; 
+        }
+
+        // ฟังก์ชันช่วยเรียกใช้งาน Google Apps Script ผ่าน API
+        async function callGAS(funcName, params = []) {
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // สำคัญมากสำหรับความเข้ากันได้
+                    body: JSON.stringify({
+                        functionName: funcName,
+                        parameters: params
+                    })
+                });
+                
+                // สำหรับโหมด no-cors เราจะไม่สามารถอ่านผลลัพธ์โดยตรงได้
+                // หากต้องการอ่านผลลัพธ์ ต้องแก้ Code.gs ให้รองรับ CORS (ดูรายละเอียดด้านล่าง)
+                return { success: true };
+            } catch (error) {
+                console.error('API Error:', error);
+                return { success: false, message: error.toString() };
+            }
+        }
+
+        async function fetchMasterDataFromFirebase() {
+            try {
+                const uSnap = await getDocs(collection(db, "users"));
+                window.allUsers = uSnap.docs.map(d => d.data());
+
+                const vSnap = await getDocs(collection(db, "vehicles"));
+                window.allVehicles = vSnap.docs.map(d => d.data());
+                
+                const dSnap = await getDocs(collection(db, "drivers"));
+                window.allDrivers = dSnap.docs.map(d => d.data());
+
+                window.globalVehicleTypes = [...new Set(window.allVehicles.map(v => v.type).filter(t => t))];
+                window.allVehicles.forEach(v => window.globalVehicleMap[v.vehicle_id] = `${v.name} (${v.plate_number})`);
+                window.allDrivers.forEach(d => window.globalDriverMap[d.driver_id] = d.name);
+
+                window.updateVehicleDropdowns();
+            } catch (error) {
+                console.error("Firebase Error:", error);
+            }
+        }
+
+        function listenToBookings() {
+            onSnapshot(collection(db, "bookings"), (snapshot) => {
+                const now = new Date().getTime();
+                const userRole = window.currentUser ? (window.currentUser.role || '').toString().trim().toLowerCase() : '';
+                
+                window.allBookings = snapshot.docs.map(docSnapshot => {
+                    let data = { fb_id: docSnapshot.id, ...docSnapshot.data() };
+                    
+                    if (data.status === 'รออนุมัติ' && data.start_datetime) {
+                        const startTime = new Date(data.start_datetime).getTime();
+                        if (startTime < now) {
+                            data.status = 'อนุมัติแล้ว'; 
+                            if (['admin', 'superadmin', 'superuser'].includes(userRole)) {
+                                const docRef = doc(db, "bookings", docSnapshot.id);
+                                updateDoc(docRef, { 
+                                    status: 'อนุมัติแล้ว',
+                                    auto_approved: true
+                                }).catch(e => console.warn("Auto approve failed", e));
+                            }
+                        }
+                    }
+                    return data;
+                });
+                
+                updateAppBadges();
+                refreshCurrentView();
+            });
+        }
+
+        window.handleLogin = async function(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            window.showLoader('ตรวจสอบข้อมูล...');
+            
+            if(window.allUsers.length === 0) await fetchMasterDataFromFirebase();
+
+            const user = window.allUsers.find(x => String(x.username || '').trim() === u && String(x.password || '').trim() === p);
+            
+            if (user) {
+                window.hideLoader();
+                processLoginSuccess(user);
+            } else {
+                window.hideLoader();
+                Swal.fire('ข้อผิดพลาด', 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง (ระบบ Firebase)', 'error');
+            }
+        };
+
+        function processLoginSuccess(user) {
+            window.currentUser = user;
+            document.getElementById('view-login').classList.remove('active');
+            const mainLayout = document.getElementById('main-layout');
+            mainLayout.classList.remove('hidden');
+            mainLayout.classList.add('flex');
+            
+            document.getElementById('display-user-name').innerText = user.name;
+            const userRole = (user.role || '').toString().trim().toLowerCase();
+            document.getElementById('display-user-role').innerText = user.role || 'User';
+
+            document.getElementById('menu-user').classList.add('hidden');
+            document.getElementById('menu-driver').classList.add('hidden');
+            document.getElementById('admin-menus').classList.add('hidden');
+            document.getElementById('sync-btn-container').classList.add('hidden');
+            document.getElementById('menu-viewer').classList.add('hidden');
+            document.getElementById('superuser-menus').classList.add('hidden');
+
+            if(userRole === 'superadmin') {
+                document.getElementById('menu-user').classList.remove('hidden');
+                document.getElementById('admin-menus').classList.remove('hidden');
+                document.getElementById('sync-btn-container').classList.remove('hidden');
+                document.getElementById('b-requester').value = user.name;
+                document.getElementById('b-dept').value = user.department;
+                listenToBookings();
+                window.switchView('view-approval');
+            } else if(userRole === 'admin') {
+                document.getElementById('menu-user').classList.remove('hidden');
+                document.getElementById('admin-menus').classList.remove('hidden');
+                document.getElementById('b-requester').value = user.name;
+                document.getElementById('b-dept').value = user.department;
+                listenToBookings();
+                window.switchView('view-approval');
+            } else if(userRole === 'superuser') {
+                document.getElementById('menu-user').classList.remove('hidden');
+                document.getElementById('superuser-menus').classList.remove('hidden');
+                document.getElementById('b-requester').value = user.name;
+                document.getElementById('b-dept').value = user.department;
+                listenToBookings();
+                window.switchView('view-approval');
+            } else if (userRole === 'driver') {
+                document.getElementById('menu-driver').classList.remove('hidden');
+                listenToBookings();
+                window.switchView('view-driver-schedule');
+            } else if (userRole === 'viewer') {
+                document.getElementById('menu-viewer').classList.remove('hidden');
+                listenToBookings();
+                window.switchView('view-calendar');
+            } else {
+                document.getElementById('menu-user').classList.remove('hidden');
+                document.getElementById('b-requester').value = user.name;
+                document.getElementById('b-dept').value = user.department;
+                listenToBookings();
+                window.switchView('view-booking');
+            }
+        }
+
+        window.logout = function() {
+            window.currentUser = null;
+            document.getElementById('main-layout').classList.add('hidden');
+            document.getElementById('main-layout').classList.remove('flex');
+            document.getElementById('view-login').classList.add('active');
+            
+            document.getElementById('loginForm').reset();
+            
+            const bookingForm = document.getElementById('createBookingForm');
+            if(bookingForm) bookingForm.reset();
+            document.getElementById('availability-status').classList.add('hidden');
+            
+            const vehicleRows = document.querySelectorAll('#vehicle-request-container .vehicle-req-row');
+            for(let i = 1; i < vehicleRows.length; i++) {
+                vehicleRows[i].remove();
+            }
+            const firstRmBtn = document.querySelector('#vehicle-request-container .vehicle-req-row .rm-btn');
+            if(firstRmBtn) firstRmBtn.classList.add('hidden');
+
+            window.toggleSidebar(true); 
+        }
+
+        window.syncDataToFirebase = function() {
+            Swal.fire({
+                title: 'ซิงค์ข้อมูลเข้า Firebase?',
+                text: "ข้อมูล User, รถ และคนขับในระบบจะถูกล้างและลงใหม่ตามที่แก้ไขใน Sheet (ประวัติการจองจะไม่หายไป) ยืนยันหรือไม่?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'เริ่มซิงค์ข้อมูล'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.showLoader('กำลังดึงข้อมูลจาก GAS...');
+                    
+                    // เรียกผ่าน API แทน google.script.run
+                    fetch(GAS_WEB_APP_URL + '?action=sync')
+                        .then(res => res.json())
+                        .then(async data => {
+                            window.showLoader('กำลังเขียนข้อมูลลง Firebase...');
+                            try {
+                                const collectionsToClean = ["users", "vehicles", "drivers"];
+                                for (let colName of collectionsToClean) {
+                                    const qSnap = await getDocs(collection(db, colName));
+                                    for (let dRef of qSnap.docs) { await deleteDoc(doc(db, colName, dRef.id)); }
+                                    for (let item of data[colName]) { await addDoc(collection(db, colName), item); }
+                                }
+
+                                for (let b of data.bookings) {
+                                    if(!window.allBookings.find(x => x.booking_id === b.booking_id)) await addDoc(collection(db, "bookings"), b);
+                                }
+                                
+                                window.hideLoader();
+                                Swal.fire('เสร็จสิ้น', 'ซิงค์ข้อมูลสำเร็จ', 'success').then(() => window.location.reload());
+                            } catch (e) {
+                                window.hideLoader();
+                                Swal.fire('Error', e.message, 'error');
+                            }
+                        })
+                        .catch(err => {
+                            window.hideLoader();
+                            Swal.fire('API Connection Error', 'กรุณาตรวจสอบ URL ของ Web App และการตั้งค่า CORS', 'error');
+                        });
+                }
+            })
+        }
+
+        window.cleanupOldBookings = function() {
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            
+            const oldBookings = window.allBookings.filter(b => {
+                if (!b.start_datetime) return false;
+                const startDate = new Date(b.start_datetime);
+                return startDate < oneYearAgo;
+            });
+
+            if (oldBookings.length === 0) {
+                Swal.fire('อัปเดตล่าสุดแล้ว', 'ไม่มีรายการจองที่อายุเกิน 1 ปี', 'info');
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการล้างประวัติเก่า?',
+                text: `พบรายการจองเกิน 1 ปี จำนวน ${oldBookings.length} รายการ ยืนยันการลบหรือไม่?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบประวัติเก่า',
+                cancelButtonText: 'ยกเลิก'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    window.showLoader(`กำลังลบข้อมูลเก่า ${oldBookings.length} รายการ...`);
+                    try {
+                        for (let b of oldBookings) {
+                            await deleteDoc(doc(db, "bookings", b.fb_id));
+                        }
+                        window.hideLoader();
+                        Swal.fire('สำเร็จ', `ลบรายการเก่าเรียบร้อยแล้ว`, 'success');
+                    } catch (error) {
+                        window.hideLoader();
+                        Swal.fire('Error', error.message, 'error');
+                    }
+                }
+            });
+        }
+
+        window.toggleSidebar = function(forceClose = false) {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (forceClose || !sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            } else {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            }
+        }
+
+        window.switchView = function(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            const titles = {
+                'view-dashboard': 'Dashboard ภาพรวม',
+                'view-my-bookings': 'สถานะและประวัติการจองของฉัน',
+                'view-driver-schedule': 'ภาระงานและตารางวิ่งรถของฉัน',
+                'view-booking': 'สร้างคำขอจองรถ',
+                'view-approval': 'จัดการและอนุมัติคำขอ',
+                'view-workload': 'ภาพรวมภาระงาน',
+                'view-calendar': 'ปฏิทินการใช้รถภาพรวม',
+                'view-stats': 'สถิติและรายงาน'
+            };
+            document.getElementById('current-page-title').innerText = titles[viewId] || '';
+            window.toggleSidebar(true);
+            refreshCurrentView();
+        }
+
+        window.switchWorkloadTab = function(tab) {
+            document.getElementById('tab-driver').classList.remove('active');
+            document.getElementById('tab-vehicle').classList.remove('active');
+            document.getElementById('workload-driver').classList.add('hidden');
+            document.getElementById('workload-vehicle').classList.add('hidden');
+
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`workload-${tab}`).classList.remove('hidden');
+        }
+
+        function refreshCurrentView() {
+            const activeEl = document.querySelector('.view-section.active');
+            if(!activeEl) return;
+            const viewId = activeEl.id;
+
+            if(viewId === 'view-dashboard') window.renderDashboard();
+            if(viewId === 'view-my-bookings') window.renderMyBookings();
+            if(viewId === 'view-driver-schedule') window.renderDriverSchedule();
+            if(viewId === 'view-approval') window.renderApprovals();
+            if(viewId === 'view-workload') window.renderWorkload();
+            if(viewId === 'view-calendar') setTimeout(window.initCalendar, 200); 
+            if(viewId === 'view-stats') window.renderStats();
+        }
+
+        function updateAppBadges() {
+            const userRole = (window.currentUser?.role || '').toString().trim().toLowerCase();
+            const pending = window.allBookings.filter(b => b.status === 'รออนุมัติ').length;
+            const badgeAdmin = document.getElementById('badge-pending');
+            if(pending > 0 && (userRole === 'admin' || userRole === 'superadmin')) { badgeAdmin.innerText = pending; badgeAdmin.classList.remove('hidden'); } 
+            else { badgeAdmin.classList.add('hidden'); }
+
+            if (userRole === 'driver') {
+                const badgeDriver = document.getElementById('badge-driver-job');
+                const now = new Date().getTime();
+                const myJobs = window.allBookings.filter(b => {
+                    if (b.status !== 'อนุมัติแล้ว' && b.status !== 'กำลังใช้งาน') return false;
+                    if (b.end_datetime && new Date(b.end_datetime).getTime() < now) return false;
+                    const dNames = getDriverNames(b.assigned_driver_ids);
+                    return dNames.includes(window.currentUser.name);
+                }).length;
+                if (myJobs > 0) { badgeDriver.innerText = myJobs; badgeDriver.classList.remove('hidden'); } 
+                else { badgeDriver.classList.add('hidden'); }
+            }
+        }
+
+        function getVehicleNames(idsStr) {
+            if (!idsStr) return '-';
+            return idsStr.toString().split(',').map(id => window.globalVehicleMap[id.trim()] || id.trim()).join(', ');
+        }
+        function getDriverNames(idsStr) {
+            if (!idsStr) return '';
+            return idsStr.toString().split(',').map(id => window.globalDriverMap[id.trim()] || id.trim()).join(', ');
+        }
+        function formatReqText(jsonStr) {
+            try {
+                let arr = JSON.parse(jsonStr);
+                return arr.map(a => `<span class="whitespace-nowrap inline-block bg-blue-50 text-blue-700 px-2 py-1 mt-1 rounded text-sm border border-blue-200">${a.type} x ${a.count}</span>`).join(' ');
+            } catch(e) { return jsonStr || '-'; }
+        }
+        
+        function formatReqTextPlain(jsonStr) {
+            try {
+                let arr = JSON.parse(jsonStr);
+                return arr.map(a => `${a.type}x${a.count}`).join(', ');
+            } catch(e) { return jsonStr || '-'; }
+        }
+
+        window.getAvailableResourcesLocally = function(startStr, endStr) {
+            if (!startStr || !endStr) return { availableVehicles: [], availableDrivers: [], availableByType: {} };
+
+            const startReq = new Date(startStr).getTime();
+            const endReq = new Date(endStr).getTime();
+            
+            let usedVehicles = []; 
+            let usedDrivers = [];
+            
+            window.allBookings.forEach(b => {
+                if (b.status === 'อนุมัติแล้ว' || b.status === 'กำลังใช้งาน') {
+                    const bStart = new Date(b.start_datetime).getTime();
+                    const bEnd = new Date(b.end_datetime).getTime();
+                    
+                    if (startReq < bEnd && endReq > bStart) {
+                        if(b.assigned_vehicle_ids) usedVehicles = usedVehicles.concat(b.assigned_vehicle_ids.toString().split(',').map(s => s.trim()));
+                        if(b.assigned_driver_ids) usedDrivers = usedDrivers.concat(b.assigned_driver_ids.toString().split(',').map(s => s.trim()));
+                    }
+                }
+            });
+            
+            const availableVehicles = window.allVehicles.filter(v => 
+                String(v.status).trim() === 'พร้อมใช้งาน' && 
+                !usedVehicles.includes(String(v.vehicle_id).trim())
+            );
+            
+            const availableDrivers = window.allDrivers.filter(d => 
+                String(d.status).trim() === 'พร้อมทำงาน' && 
+                !usedDrivers.includes(String(d.driver_id).trim())
+            );
+
+            let availableByType = {};
+            availableVehicles.forEach(v => {
+                let t = String(v.type || 'ไม่ระบุ').trim();
+                availableByType[t] = (availableByType[t] || 0) + 1;
+            });
+
+            return { availableVehicles, availableDrivers, availableByType };
+        };
+
+        window.updateVehicleDropdowns = function() {
+            const options = window.globalVehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+            document.querySelectorAll('.req-type').forEach(sel => {
+                if(sel.options.length <= 1) sel.innerHTML = options;
+            });
+        }
+
+        window.addVehicleRequestRow = function(containerId) {
+            const container = document.getElementById(containerId);
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2 md:gap-3 vehicle-req-row flex-wrap sm:flex-nowrap mt-3';
+            const options = window.globalVehicleTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+            row.innerHTML = `
+                <select class="req-type flex-1 p-3 border rounded-lg w-full sm:w-auto outline-none focus:ring-2 focus:ring-blue-500 text-base" required>${options}</select>
+                <input type="number" class="req-count w-full sm:w-24 p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-base" min="1" value="1" required placeholder="จำนวน(คัน)">
+                <button type="button" class="px-4 py-3 text-red-500 hover:bg-red-100 rounded-lg rm-btn w-full sm:w-auto text-center" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash text-lg"></i></button>
+            `;
+            container.appendChild(row);
+            
+            const rmBtns = container.querySelectorAll('.rm-btn');
+            if(rmBtns.length > 1) {
+                rmBtns.forEach(b => b.classList.remove('hidden'));
+            }
+        }
+
+        window.checkRealtimeAvailability = function(startId, endId, statusDivId, contentDivId) {
+            const start = document.getElementById(startId).value;
+            const end = document.getElementById(endId).value;
+            const statusDiv = document.getElementById(statusDivId);
+            const contentDiv = document.getElementById(contentDivId);
+
+            if(!start || !end) { statusDiv.classList.add('hidden'); return; }
+            if(new Date(start) >= new Date(end)) {
+                contentDiv.innerHTML = '<span class="text-red-500 col-span-full">เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น</span>';
+                statusDiv.classList.remove('hidden');
+                return;
+            }
+
+            const res = window.getAvailableResourcesLocally(start, end);
+            
+            if(Object.keys(res.availableByType).length === 0) {
+                contentDiv.innerHTML = '<span class="col-span-full text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ไม่มีรถว่างเลยในช่วงเวลานี้</span>';
+            } else {
+                let html = '';
+                for(let type in res.availableByType) {
+                    html += `<div class="bg-white p-2 rounded text-center border border-blue-100 shadow-sm"><div class="font-bold">${type}</div><div class="text-lg text-green-600">${res.availableByType[type]} คัน</div></div>`;
+                }
+                contentDiv.innerHTML = html;
+            }
+            statusDiv.classList.remove('hidden');
+        }
+
+        window.submitBooking = async function(e) {
+            e.preventDefault();
+            
+            let requestedVehicles = [];
+            document.querySelectorAll('#vehicle-request-container .vehicle-req-row').forEach(row => {
+                let type = row.querySelector('.req-type').value;
+                let count = parseInt(row.querySelector('.req-count').value);
+                let existing = requestedVehicles.find(x => x.type === type);
+                if(existing) existing.count += count;
+                else requestedVehicles.push({ type: type, count: count });
+            });
+
+            const payload = {
+                booking_id: 'BK' + new Date().getTime(),
+                requester: document.getElementById('b-requester').value,
+                department: document.getElementById('b-dept').value,
+                activities: document.getElementById('b-activity').value,
+                start_datetime: document.getElementById('b-start').value,
+                end_datetime: document.getElementById('b-end').value,
+                location: document.getElementById('b-location').value,
+                passenger_count: document.getElementById('b-passenger').value,
+                requested_vehicles: JSON.stringify(requestedVehicles),
+                note: document.getElementById('b-note').value,
+                status: 'รออนุมัติ',
+                assigned_vehicle_ids: '',
+                assigned_driver_ids: '',
+                created_at: new Date().toISOString()
+            };
+
+            if(new Date(payload.start_datetime) >= new Date(payload.end_datetime)) {
+                Swal.fire('Error', 'เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น', 'warning');
+                return;
+            }
+
+            window.showLoader('กำลังบันทึกข้อมูล...');
+            try {
+                await addDoc(collection(db, "bookings"), payload);
+                
+                // แจ้ง GAS ผ่าน API
+                callGAS('createBookingDualWrite', [payload]);
+
+                window.hideLoader();
+                Swal.fire('สำเร็จ!', 'ส่งคำขอจองรถเรียบร้อยแล้ว', 'success');
+                
+                document.getElementById('createBookingForm').reset();
+                if(window.currentUser) {
+                    document.getElementById('b-requester').value = window.currentUser.name;
+                    document.getElementById('b-dept').value = window.currentUser.department;
+                }
+                
+                window.switchView('view-my-bookings'); 
+            } catch(error) {
+                window.hideLoader();
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        window.submitApproval = async function(status) {
+            const id = document.getElementById('alloc-id').value; 
+            const note = document.getElementById('alloc-note').value;
+            
+            let vehicles = [];
+            let drivers = [];
+
+            if(status === 'อนุมัติแล้ว') {
+                const rows = document.querySelectorAll('.alloc-row');
+                let isRowValid = true;
+                rows.forEach(row => {
+                    const vSelect = row.querySelector('.alloc-v-select');
+                    const dSelect = row.querySelector('.alloc-d-select');
+                    if (vSelect.value) {
+                        vehicles.push(vSelect.value);
+                        drivers.push(dSelect.value || ""); 
+                    } else { isRowValid = false; }
+                });
+
+                if (rows.length === 0 || !isRowValid) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรถ', 'warning'); return; }
+                if (new Set(vehicles).size !== vehicles.length) { Swal.fire('แจ้งเตือน', 'เลือกรถซ้ำ', 'warning'); return; }
+            }
+
+            window.showLoader('กำลังบันทึกการอนุมัติ...');
+            try {
+                const docRef = doc(db, "bookings", id);
+                const updateData = {
+                    status: status,
+                    assigned_vehicle_ids: vehicles.join(','),
+                    assigned_driver_ids: drivers.join(','),
+                    approved_by: window.currentUser.name,
+                    admin_note: note 
+                };
+                
+                await updateDoc(docRef, updateData);
+
+                const targetBooking = window.allBookings.find(b => b.fb_id === id);
+                if(targetBooking) {
+                    callGAS('processApprovalDualWrite', [targetBooking.booking_id, status, vehicles, drivers, window.currentUser.name, note, targetBooking]);
+                }
+
+                window.hideLoader();
+                window.closeAllocateModal();
+                Swal.fire('สำเร็จ', 'บันทึกเรียบร้อย', 'success');
+            } catch(error) {
+                window.hideLoader();
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        window.cancelBooking = function(fb_id, booking_id) {
+            Swal.fire({
+                title: 'ยืนยันการยกเลิก?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ยกเลิกเลย',
+                cancelButtonText: 'ปิด'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    window.showLoader('กำลังยกเลิก...');
+                    try {
+                        const docRef = doc(db, "bookings", fb_id);
+                        await updateDoc(docRef, { status: 'ยกเลิก' });
+                        
+                        const targetBooking = window.allBookings.find(b => b.fb_id === fb_id);
+                        callGAS('cancelBookingDualWrite', [booking_id, window.currentUser.name, targetBooking]);
+                        
+                        window.hideLoader();
+                        Swal.fire('สำเร็จ', 'ยกเลิกเรียบร้อย', 'success');
+                    } catch (error) {
+                        window.hideLoader();
+                        Swal.fire('Error', error.message, 'error');
+                    }
+                }
+            });
+        }
+
+        window.renderDashboard = function() {
+            document.getElementById('dash-total').innerText = window.allVehicles.length || '-';
+            const todayStr = new Date().toISOString().split('T')[0];
+            let inUseToday = 0;
+            let scheduleToday = [];
+            
+            window.allBookings.forEach(b => {
+                if (b.status === 'อนุมัติแล้ว' || b.status === 'กำลังใช้งาน') {
+                    if(b.start_datetime && b.start_datetime.includes(todayStr)) {
+                        inUseToday++;
+                        scheduleToday.push(b);
+                    }
+                }
+            });
+            document.getElementById('dash-inuse').innerText = inUseToday;
+            document.getElementById('dash-free').innerText = (window.allVehicles.length - inUseToday) || 0;
+            
+            const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            let tmrCount = 0;
+            window.allBookings.forEach(b => {
+                if((b.status === 'อนุมัติแล้ว' || b.status === 'กำลังใช้งาน') && b.start_datetime && b.start_datetime.includes(tomorrowStr)) tmrCount++;
+            });
+            document.getElementById('dash-tomorrow').innerText = tmrCount;
+
+            const tbody = document.getElementById('dash-today-table');
+            tbody.innerHTML = '';
+            if(scheduleToday.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">ไม่มีรายการรถออกในวันนี้</td></tr>';
+            } else {
+                scheduleToday.forEach(b => {
+                    let st = new Date(b.start_datetime).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+                    let en = new Date(b.end_datetime).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+                    let statusClass = b.status === 'กำลังใช้งาน' ? 'bg-orange-100 text-orange-600 animate-pulse' : 'bg-green-100 text-green-700';
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3 md:p-4 text-base font-medium"><b>${b.requester}</b><br><span class="text-sm text-gray-500">${b.activities}</span></td>
+                            <td class="p-3 md:p-4 text-base">${st} - ${en}</td>
+                            <td class="p-3 md:p-4 text-base text-gray-600">${b.location}</td>
+                            <td class="p-3 md:p-4 text-sm text-center font-bold text-blue-600">${getVehicleNames(b.assigned_vehicle_ids)}<br><span class="text-xs font-normal text-gray-500">${getDriverNames(b.assigned_driver_ids)}</span></td>
+                            <td class="p-3 md:p-4 text-center"><span class="px-3 py-1.5 rounded-lg text-sm font-bold ${statusClass}">${b.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        window.renderMyBookings = function() {
+            const tbody = document.getElementById('my-bookings-table');
+            tbody.innerHTML = '';
+            const myData = window.allBookings.filter(b => b.requester === window.currentUser.name);
+            
+            if(myData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-gray-500">ยังไม่เคยทำการจองรถ</td></tr>';
+                return;
+            }
+
+            myData.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+            myData.forEach(b => {
+                let dateStr = new Date(b.start_datetime).toLocaleDateString('th-TH');
+                let statusBadge = '';
+                if(b.status === 'รออนุมัติ') statusBadge = '<span class="bg-yellow-100 text-yellow-700 p-1.5 rounded">รออนุมัติ</span>';
+                else if(b.status === 'ปฏิเสธ') statusBadge = '<span class="bg-red-100 text-red-700 p-1.5 rounded">ปฏิเสธ</span>';
+                else if(b.status === 'ยกเลิก') statusBadge = '<span class="bg-gray-200 text-gray-600 p-1.5 rounded">ยกเลิกแล้ว</span>';
+                else statusBadge = '<span class="bg-green-100 text-green-700 p-1.5 rounded">'+b.status+'</span>';
+
+                let actionBtn = '';
+                if (b.status === 'รออนุมัติ') {
+                    actionBtn = `<br><div class="mt-2"><button onclick="window.openEditBookingModal('${b.fb_id}')" class="text-blue-500 mr-2">แก้ไข</button><button onclick="window.cancelBooking('${b.fb_id}', '${b.booking_id}')" class="text-red-500">ยกเลิก</button></div>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-3 md:p-4 text-sm font-bold text-gray-700">${b.booking_id || '-'}</td>
+                        <td class="p-3 md:p-4 text-base">${b.activities}<br><small>${b.location}</small></td>
+                        <td class="p-3 md:p-4 text-base">${dateStr}</td>
+                        <td class="p-3 md:p-4 text-base text-center">${formatReqText(b.requested_vehicles)}</td>
+                        <td class="p-3 md:p-4 text-sm text-center">${getVehicleNames(b.assigned_vehicle_ids)}</td>
+                        <td class="p-3 md:p-4 text-center">${statusBadge}${actionBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.renderApprovals = function() {
+            const userRole = (window.currentUser?.role || '').toString().trim().toLowerCase();
+            const filter = document.getElementById('filter-status').value;
+            const tbody = document.getElementById('approval-table');
+            tbody.innerHTML = '';
+
+            let list = [...window.allBookings]; 
+            
+            if (filter === 'รออนุมัติ') {
+                list.sort((a,b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
+            } else {
+                list.sort((a,b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime());
+            }
+            
+            if(filter !== 'all') list = list.filter(b => b.status === filter);
+            
+            if(list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4">ไม่มีข้อมูล</td></tr>'; return; }
+
+            list.forEach(b => {
+                let dateStr = new Date(b.start_datetime).toLocaleDateString('th-TH');
+                let statusBadge = b.status === 'รออนุมัติ' ? '<span class="bg-yellow-100 p-1 rounded">รออนุมัติ</span>' : 
+                                  (b.status === 'ปฏิเสธ' ? '<span class="bg-red-100 p-1 rounded">ปฏิเสธ</span>' : 
+                                  (b.status === 'ยกเลิก' ? '<span class="bg-gray-100 p-1 rounded">ยกเลิก</span>' :
+                                  '<span class="bg-green-100 p-1 rounded">อนุมัติแล้ว</span>'));
+
+                let actionBtn = '';
+                
+                if (userRole === 'superuser') {
+                    if (b.status === 'อนุมัติแล้ว') {
+                        if(b.pdf_url) {
+                            actionBtn += `<button onclick="window.open('${b.pdf_url}', '_blank')" class="bg-blue-600 text-white p-2 rounded mb-1 w-full">ดู PDF</button>`;
+                        } else {
+                            actionBtn += `<button onclick="window.printPDF('${b.fb_id}')" class="bg-indigo-600 text-white p-2 rounded w-full">สร้าง PDF</button>`;
+                        }
+                    }
+                } else {
+                    if(b.status === 'รออนุมัติ') {
+                        const escJson = (b.requested_vehicles || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        actionBtn = `
+                            <button onclick="window.openAllocateModal('${b.fb_id}', '${b.start_datetime}', '${b.end_datetime}', '${b.requester}', '${escJson}')" class="bg-blue-500 text-white p-2 rounded mb-1 w-full">จัดสรร</button>
+                            <button onclick="window.cancelBooking('${b.fb_id}', '${b.booking_id}')" class="border border-red-500 text-red-500 p-2 rounded w-full">ยกเลิก</button>
+                        `;
+                    } else if (b.status === 'อนุมัติแล้ว') {
+                        actionBtn = `<button onclick="window.openEditDriverModal('${b.fb_id}')" class="bg-orange-500 text-white p-2 rounded mb-1 w-full">แก้คนขับ</button>`;
+                        if(b.pdf_url) {
+                            actionBtn += `<button onclick="window.open('${b.pdf_url}', '_blank')" class="bg-blue-600 text-white p-2 rounded mb-1 w-full">ดู PDF</button>`;
+                        } else {
+                            actionBtn += `<button onclick="window.printPDF('${b.fb_id}')" class="bg-indigo-600 text-white p-2 rounded w-full">สร้าง PDF</button>`;
+                        }
+                    }
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-3 md:p-4 text-sm"><b>${b.booking_id || '-'}</b><br>${b.requester}</td>
+                        <td class="p-3 md:p-4 text-base">${b.activities}<br><small>${b.location}</small></td>
+                        <td class="p-3 md:p-4 text-base">${dateStr}</td>
+                        <td class="p-3 md:p-4 text-center">${formatReqText(b.requested_vehicles)}</td>
+                        <td class="p-3 md:p-4 text-center">${statusBadge}</td>
+                        <td class="p-3 md:p-4 text-center w-36">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        window.printPDF = async function(fb_id) {
+            const booking = window.allBookings.find(b => b.fb_id === fb_id);
+            if (!booking) return;
+
+            window.showLoader('กำลังสร้างไฟล์ PDF...');
+            
+            // เรียกผ่าน API แทน google.script.run
+            const response = await callGAS('generatePDF', [JSON.stringify(booking)]);
+            window.hideLoader();
+            
+            if(response.success) {
+                Swal.fire('สำเร็จ', 'PDF จะพร้อมให้บริการในหน้าจอดูไฟล์เมื่อระบบประมวลผลเสร็จสิ้น', 'success');
+            }
+        }
+
+        window.openEditDriverModal = function(fb_id) {
+            const booking = window.allBookings.find(b => b.fb_id === fb_id);
+            if(!booking) return;
+
+            document.getElementById('edit-alloc-id').value = fb_id;
+            document.getElementById('edit-alloc-booking-id').value = booking.booking_id;
+            document.getElementById('edit-alloc-user').innerText = booking.requester;
+
+            const vehicles = (booking.assigned_vehicle_ids || '').split(',').filter(s=>s);
+            const drivers = (booking.assigned_driver_ids || '').split(',');
+
+            const container = document.getElementById('edit-alloc-dynamic-rows');
+            container.innerHTML = '';
+
+            vehicles.forEach((vId, idx) => {
+                const currentDriverId = drivers[idx] || '';
+                const vObj = window.allVehicles.find(v => String(v.vehicle_id) === vId);
+                const vName = vObj ? `${vObj.name} (${vObj.plate_number})` : vId;
+
+                let dOptions = `<option value="">-- ไม่ระบุ --</option>`;
+                window.allDrivers.forEach(d => {
+                    dOptions += `<option value="${d.driver_id}" ${d.driver_id == currentDriverId ? 'selected' : ''}>${d.name}</option>`;
+                });
+
+                container.insertAdjacentHTML('beforeend', `<div class="p-2 border rounded bg-white"><p class="text-xs font-bold">${vName}</p><select class="w-full p-2 border edit-d-select">${dOptions}</select><input type="hidden" class="edit-v-id" value="${vId}"></div>`);
+            });
+
+            const modal = document.getElementById('edit-driver-modal');
+            const content = document.getElementById('edit-driver-modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        window.submitEditDriver = async function() {
+            const fb_id = document.getElementById('edit-alloc-id').value;
+            const booking_id = document.getElementById('edit-alloc-booking-id').value;
+            const rows = document.querySelectorAll('#edit-alloc-dynamic-rows > div');
+            let newDrivers = [];
+            let vehicles = [];
+
+            rows.forEach(row => {
+                vehicles.push(row.querySelector('.edit-v-id').value);
+                newDrivers.push(row.querySelector('.edit-d-select').value);
+            });
+
+            const newDriversStr = newDrivers.join(',');
+            const vehiclesStr = vehicles.join(',');
+
+            window.showLoader('กำลังบันทึก...');
+            try {
+                const docRef = doc(db, "bookings", fb_id);
+                await updateDoc(docRef, { assigned_driver_ids: newDriversStr });
+
+                const targetBooking = window.allBookings.find(b => b.fb_id === fb_id);
+                callGAS('editDriverDualWrite', [booking_id, vehiclesStr, newDriversStr, window.currentUser.name, targetBooking]);
+
+                window.hideLoader();
+                window.closeEditDriverModal();
+                Swal.fire('สำเร็จ', 'แก้ไขคนขับเรียบร้อย', 'success');
+            } catch (error) {
+                window.hideLoader();
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        window.closeEditDriverModal = function() {
+            const content = document.getElementById('edit-driver-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { document.getElementById('edit-driver-modal').classList.add('hidden'); }, 300);
+        }
+        
+        window.renderDriverSchedule = function() {
+            const tbody = document.getElementById('driver-schedule-table');
+            tbody.innerHTML = '';
+            const now = new Date().getTime();
+            const myJobs = window.allBookings.filter(b => {
+                if (b.status === 'ปฏิเสธ' || b.status === 'รออนุมัติ' || b.status === 'ยกเลิก') return false;
+                if (b.end_datetime && new Date(b.end_datetime).getTime() < now) return false;
+                const dNames = getDriverNames(b.assigned_driver_ids);
+                return dNames.includes(window.currentUser.name);
+            });
+            myJobs.sort((a,b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
+            
+            if(myJobs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4">ไม่มีงานใหม่</td></tr>';
+                return;
+            }
+
+            myJobs.forEach(b => {
+                let dateStr = new Date(b.start_datetime).toLocaleDateString('th-TH');
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-3 md:p-4 text-base">${dateStr}</td>
+                        <td class="p-3 md:p-4 text-base">${b.activities}<br><small>${b.location}</small></td>
+                        <td class="p-3 md:p-4 text-center">${getVehicleNames(b.assigned_vehicle_ids)}</td>
+                        <td class="p-3 md:p-4 text-center">${b.status}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.renderWorkload = function() {
+            const now = new Date().getTime();
+            const activeBookings = window.allBookings.filter(b => {
+                if (b.status !== 'อนุมัติแล้ว' && b.status !== 'กำลังใช้งาน') return false;
+                if (b.end_datetime && new Date(b.end_datetime).getTime() < now) return false;
+                return true;
+            });
+            
+            let dWork = {}; let vWork = {};
+            window.allDrivers.forEach(d => dWork[d.driver_id] = { name: d.name, jobs: [] });
+            window.allVehicles.forEach(v => vWork[v.vehicle_id] = { name: v.name, plate: v.plate_number, jobs: [] });
+            
+            activeBookings.forEach(b => {
+                let jobInfo = { 
+                    req: b.requester, act: b.activities, loc: b.location, 
+                    start: b.start_datetime, end: b.end_datetime 
+                };
+                if(b.assigned_driver_ids) b.assigned_driver_ids.split(',').forEach(dId => { if(dWork[dId.trim()]) dWork[dId.trim()].jobs.push(jobInfo); });
+                if(b.assigned_vehicle_ids) b.assigned_vehicle_ids.split(',').forEach(vId => { if(vWork[vId.trim()]) vWork[vId.trim()].jobs.push(jobInfo); });
+            });
+
+            const generateHtml = (data, isDriver) => {
+                let html = '';
+                for(let id in data) {
+                    const item = data[id];
+                    const jobsHtml = item.jobs.length ? item.jobs.map(j => `<div>${j.act} (${new Date(j.start).toLocaleDateString('th-TH')})</div>`).join('') : '<span class="text-gray-400">ว่าง</span>';
+                    html += `<tr class="border-b"><td class="p-4"><b>${isDriver ? item.name : item.plate}</b></td><td class="p-4">${jobsHtml}</td></tr>`;
+                }
+                return html;
+            };
+
+            document.getElementById('wl-driver-body').innerHTML = generateHtml(dWork, true);
+            document.getElementById('wl-vehicle-body').innerHTML = generateHtml(vWork, false);
+        }
+
+        window.renderStats = function() {
+            let vehicleData = {}; let deptData = {};
+            window.allBookings.forEach(b => {
+                if(b.status === 'อนุมัติแล้ว' || b.status === 'กำลังใช้งาน') {
+                    if(b.assigned_vehicle_ids) b.assigned_vehicle_ids.split(',').forEach(c => {
+                        let carName = window.globalVehicleMap[c.trim()] || c.trim();
+                        vehicleData[carName] = (vehicleData[carName] || 0) + 1;
+                    });
+                    if(b.department) deptData[b.department] = (deptData[b.department] || 0) + 1;
+                }
+            });
+
+            const renderTable = (data, target) => {
+                const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
+                document.getElementById(target).innerHTML = sorted.map(([n,c]) => `<tr class="border-b"><td class="p-4">${n}</td><td class="p-4 text-center font-bold">${c}</td></tr>`).join('');
+            };
+            renderTable(vehicleData, 'stat-vehicle-body');
+            renderTable(deptData, 'stat-dept-body');
+        }
+
+        window.initCalendar = function() {
+            if(calendarInstance) calendarInstance.destroy();
+            const events = window.allBookings.filter(b => b.status !== 'ปฏิเสธ' && b.status !== 'ยกเลิก').map(b => ({
+                title: `${b.requester} | ${getVehicleNames(b.assigned_vehicle_ids)}`,
+                start: b.start_datetime, end: b.end_datetime,
+                color: b.status === 'รออนุมัติ' ? '#9ca3af' : '#3b82f6',
+                extendedProps: { loc: b.location, act: b.activities }
+            }));
+            calendarInstance = new FullCalendar.Calendar(document.getElementById('calendar'), {
+                initialView: 'dayGridMonth', locale: 'th', height: 'auto',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+                events: events,
+                eventClick: (info) => { Swal.fire({ title: info.event.title, text: `กิจกรรม: ${info.event.extendedProps.act}\nสถานที่: ${info.event.extendedProps.loc}` }); }
+            });
+            calendarInstance.render();
+        }
+
+        window.openAllocateModal = function(id, start, end, reqName, reqJsonStr) {
+            document.getElementById('alloc-id').value = id;
+            document.getElementById('alloc-user').innerText = reqName;
+            const targetBooking = window.allBookings.find(b => b.fb_id === id);
+            document.getElementById('alloc-activity').innerText = targetBooking?.activities || '-';
+            document.getElementById('alloc-location').innerText = targetBooking?.location || '-';
+            document.getElementById('alloc-time').innerText = new Date(start).toLocaleString('th-TH');
+            
+            const reqArr = JSON.parse(reqJsonStr.replace(/&quot;/g, '"'));
+            const res = window.getAvailableResourcesLocally(start, end);
+            const container = document.getElementById('alloc-dynamic-rows');
+            container.innerHTML = '';
+
+            reqArr.forEach(req => {
+                const vOptions = res.availableVehicles.filter(v => v.type == req.type).map(v => `<option value="${v.vehicle_id}">${v.plate_number} - ${v.name}</option>`).join('');
+                const dOptions = res.availableDrivers.map(d => `<option value="${d.driver_id}">${d.name}</option>`).join('');
+                for(let i=0; i<req.count; i++) {
+                    container.insertAdjacentHTML('beforeend', `<div class="p-3 border rounded mb-2 bg-white flex gap-2"><select class="alloc-v-select flex-1 p-2 border rounded"><option value="">-- เลือกรถ ${req.type} --</option>${vOptions}</select><select class="alloc-d-select flex-1 p-2 border rounded"><option value="">-- เลือกคนขับ --</option>${dOptions}</select><button onclick="this.parentElement.remove()" class="text-red-500">ลบ</button></div>`);
+                }
+            });
+
+            document.getElementById('allocate-modal').classList.remove('hidden');
+        }
+
+        window.closeAllocateModal = () => document.getElementById('allocate-modal').classList.add('hidden');
+        window.addEventListener('resize', () => { if(calendarInstance) calendarInstance.render(); });
+        
+        // เริ่มต้นโหลดข้อมูล
+        fetchMasterDataFromFirebase();
+    </script>
+</body>
 </html>
